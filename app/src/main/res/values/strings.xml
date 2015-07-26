@@ -6,4 +6,6 @@
 
     <string name="map_unavailable">Map not available, pleasa try again in sometime.</string>
     <string name="generic_error">Oops...something went wrong. Try again in sometime.</string>
+    <string name="title_activity_about">About</string>
+    <string name="action_settings">Settings</string>
 </resources>
