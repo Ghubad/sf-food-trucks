@@ -57,7 +57,7 @@ I have used [mcxiaoke/android-volley](https://github.com/mcxiaoke/android-volley
 
 ###Detailed Description of the project
 
-The code in the above repository leverages the functionality provided, primarily, by Android Sdk and Google Maps Android API v2. Volley has been used to address networking requirements of the application. Volley is being used by Google and their primary HTTP library. Initially, it was was used to for Play store before making it open source in 2013. Volley solves many of the problems related to networking.
+The code in the above repository leverages the functionality provided, primarily, by Android SDK and Google Maps Android API v2. Volley has been used to address networking requirements of the application. Volley is being used by Google Apps as their primary HTTP library. Initially, it was was used for Play Store before making it open source in 2013. Volley solves many of the problems related to networking.
 
 Volley offers the following benefits, to name a few:
 - Automatic scheduling of network requests.
@@ -72,17 +72,23 @@ Volley offers the following benefits, to name a few:
 For more information check out
 [http://developer.android.com/intl/zh-cn/training/volley/index.html](http://developer.android.com/intl/zh-cn/training/volley/index.html)
 
-I have also used AppCompat support library for backward compatibility, for supporting devices prior to lollipop, with material design. Other technologies used are:
+I have used AppCompat support library for backward compatibility, to support material design in devices pre dating lollipop. Other technologies used are:
 - Crashlytics for crash reporting.
-- Junit and Mockito for unit testing android apps.
+- Junit and Mockito for unit testing.
 
 To begin with, I am using AppController which is an application class, as a singleton, to create and hold volley request queue. There must be only one request queue. All the requests are then added to this queue. Volley makes the http call and returns the response in callback methods.
 
-We need to check if the Play Services are available for Maps to work. To do this, I implemented OnMapReadyCallback. Do this makes SDK to take care of checking availability of Play services and asking user to install it, if not. Finally when all the prerequisites are fulfilled, reference to map object is available in it’s callback method. Once we get this reference, we are ready to use Map Fragment view provided by APIs.
+We need to check if the Play Services are available, for Maps to work. To do this, I implemented OnMapReadyCallback. Doing this makes SDK to take care of checking availability of Play services and asking user to install it, if otherwise. Finally when all the prerequisites are fulfilled, reference to map object is available in it’s callback method. Once we get this reference, we are ready to use Map Fragment view provided by APIs.
 
 Next up, I initialize the google api client, once connected with this service, we can leverage the functionalities provided by Google. We get notified of the connection through a call back method. From here on, I go on to locate user to pinpoint him on Map and also fetch food trucks data by hitting SOCRATA apis.
 
 To locate user, FusedLocationApi is being used. APIs getLastLocation method provides us with the location information. This info contains latitude and longitude information. Using this information, I zoom into the map to user’s location.
+
+I have used a convenience button at the top of the Map view to take user to directly to San Francisco. This is for testing purpose. To do this, I have used Geocoder, getFromLocationName, return the location information similar to FusedLocationApi. This service can be used to fetch location information either by using name or pincode.
+
+Google Maps view also provide user to go to his location. This implementation is completely provided by SDK. We don’t have any code to use this feature.
+
+Finally, I used the Json response to store data (for now just storing it in memory, will implement local db soon) and add markers to the Maps which holds the information about the truck. Markers show the Name of the food truck and food it has to offer. 
 
 Going forward, 
 - I plan to integrate this project with Travis CI. 
