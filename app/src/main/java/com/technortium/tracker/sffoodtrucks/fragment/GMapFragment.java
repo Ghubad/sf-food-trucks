@@ -254,7 +254,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         if (result) {
             drawMarkers();
         } else {
-            //provide snack bar to allow user to retry/refresh
+            //todo provide snack bar to allow user to retry/refresh
         }
 
         if (pDialog != null && pDialog.isShowing())
