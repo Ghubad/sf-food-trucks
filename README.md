@@ -92,15 +92,20 @@ Finally, I used the Json response to store data (for now just storing it in memo
 
 Going forward, 
 - I plan to integrate this project with Travis CI. 
+- Provide a more detailed information view.
 - Add database, since I realised this data is not realtime and often less frequently updated.
 - Test edges cases pertaining to UI using Instrumention and Expresso framework provded by Android.
 - Add contextual error messages by imeplenting custom exceptions to the project. 
 - Add a search box with autocomplete feature to assist user to find a particular truck.
 - Add a truck to favorites list.
-- Leverage geofencing to let user know if they are around their favorite truck.
+- Leverage Geofencing to let user know if they are around their favorite truck.
 - Share a truck info with with friends.
 
 To end,this I take a lot of pride in uploading this project to public reposistory and in creating this read me file. All the information and coding help required to develop this project has come from a number of onine blogs and android api documentations. 
+
+Due to time constraints, I was not to able to write many test cases. However I have written test cases for validating the data required for showing marker. I will be adding more test cases sooner. Along with above mentioned tasks.
+
+You can download APK from [here](https://drive.google.com/file/d/0B9ErXsnOdkPARDYwb25YU25vMzg/view?usp=sharing)
 
 License
 =========
