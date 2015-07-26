@@ -41,7 +41,16 @@ public class FoodTruckStore {
     }
 
     public void setFoodTruckList(List<FoodTruck> truckList) {
-        foodTruckList = truckList;
+
+        //validating truck info before storing it.
+        List<FoodTruck> tempFoodTruckList = new ArrayList<FoodTruck>();
+        for(FoodTruck truck: truckList) {
+            if(truck.getLatitude() ==0 || truck.getLongitude() ==0 || truck.getApplicant().isEmpty()) {
+                continue;
+            }
+            tempFoodTruckList.add(truck);
+        }
+        foodTruckList = tempFoodTruckList;
     }
 
     public void getFoodTruckData(OnRequestCallback context) {
@@ -78,26 +87,14 @@ public class FoodTruckStore {
 
         // store data in db sqlite when implemented
         if (response != null) {
-            setFoodTruckList(Arrays.asList(response));
-            if (validateData()) {
-
+                //storing in collections and keeping it memory for now
+                setFoodTruckList(Arrays.asList(response));
                 success = true;
-            }
+
         } else {
             success = false;
         }
         return success;
-    }
-
-    private boolean validateData() {
-        //validate data, if any, according to business rules;
-        for (FoodTruck truck : foodTruckList) {
-            if (false)
-                //todo - more validations,for now, keeping it false
-                // so as not to remove any objects from list.
-                foodTruckList.remove(truck);
-        }
-        return true;
     }
 
     private void sendResult() {
