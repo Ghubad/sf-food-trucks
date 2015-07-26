@@ -15,15 +15,13 @@ import java.util.Map;
 
 public class FoodTruckStore {
 
-    private static FoodTruckStore mInstance;
-    private List<FoodTruck> foodTruckList;
-    private OnRequestCallback context;
-
     private static final String API_ENDPOINT = "https://data.sfgov.org/resource/6a9r-agq8.json";
     private static final String X_APP_TOKEN = "hsHjdNgZ8xhvv2dyMyeHH0IjU";
     private static final String SFFT = "SSFT";
-
+    private static FoodTruckStore mInstance;
     boolean success;
+    private List<FoodTruck> foodTruckList;
+    private OnRequestCallback context;
 
     private FoodTruckStore() {
     }
@@ -60,6 +58,7 @@ public class FoodTruckStore {
                         }, new Response.ErrorListener() {
                     @Override
                     public void onErrorResponse(VolleyError error) {
+                        //todo - handle contextual error responses
                         success = false;
                         sendResult();
                     }
@@ -78,17 +77,26 @@ public class FoodTruckStore {
     public boolean storeData(FoodTruck[] response) {
 
         // store data in db sqlite when implemented
-        setFoodTruckList(Arrays.asList(response));
+        if (response != null) {
+            setFoodTruckList(Arrays.asList(response));
+            if (validateData()) {
 
-        if(validateData()){
-            success = true;
+                success = true;
+            }
+        } else {
+            success = false;
         }
-
         return success;
     }
 
     private boolean validateData() {
-        //validate data
+        //validate data, if any, according to business rules;
+        for (FoodTruck truck : foodTruckList) {
+            if (false)
+                //todo - more validations,for now, keeping it false
+                // so as not to remove any objects from list.
+                foodTruckList.remove(truck);
+        }
         return true;
     }
 
