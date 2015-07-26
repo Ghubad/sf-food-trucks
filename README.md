@@ -84,6 +84,16 @@ Next up, I initialize the google api client, once connected with this service, w
 
 To locate user, FusedLocationApi is being used. APIs getLastLocation method provides us with the location information. This info contains latitude and longitude information. Using this information, I zoom into the map to user’s location.
 
+Going forward, 
+-I plan to integrate this project with Travis CI. 
+-Add database, since I realised this data is not realtime and often less frequently updated.
+-Test edges cases pertaining to UI using Instrumention and Expresso framework provded by Android.
+-Add contextual error messages by imeplenting custom exceptions to the project. 
+-Add a search box with autocomplete feature to assist user to find a particular truck.
+-Add a truck to favorites list.
+-Share a truck info with with friends.
+
+To end,this I take a lot of pride in uploading this project to public reposistory and in creating this read me file. All the information and coding help required to develop this project has come from a number of onine blogs and android api documentations. 
 
 License
 =========
