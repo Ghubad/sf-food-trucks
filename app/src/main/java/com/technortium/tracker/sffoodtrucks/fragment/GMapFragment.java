@@ -1,4 +1,3 @@
-
 package com.technortium.tracker.sffoodtrucks.fragment;
 
 import android.app.Fragment;
@@ -12,7 +11,9 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AutoCompleteTextView;
+import android.widget.Button;
 import android.widget.Toast;
+
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.location.LocationListener;
@@ -29,30 +30,27 @@ import com.technortium.tracker.sffoodtrucks.AppController;
 import com.technortium.tracker.sffoodtrucks.R;
 import com.technortium.tracker.sffoodtrucks.model.FoodTruck;
 import com.technortium.tracker.sffoodtrucks.model.FoodTruckStore;
-import com.technortium.tracker.sffoodtrucks.network.CustomRequest;
 import com.technortium.tracker.sffoodtrucks.network.OnRequestCallback;
+
 import java.io.IOException;
 import java.util.List;
 
 public class GMapFragment extends Fragment implements OnRequestCallback, OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
-
-    private GoogleMap mMap;
-    private GoogleApiClient mGoogleApiClient;
 
     private static final int GPS_ERROR_REQUEST = 9001;
     private static final float ZOOM_LEVEL = 17;
     private static final String DEFAULT_LOCATION = "san francisco";
     private static final String API_ENDPOINT = "https://data.sfgov.org/resource/6a9r-agq8.json";
     private static final String X_APP_TOKEN = "hsHjdNgZ8xhvv2dyMyeHH0IjU";
-
     private static final String SFFT = "SSFT";
     private static final String TAG = GMapFragment.class.getSimpleName();
-
+    private GoogleMap mMap;
+    private GoogleApiClient mGoogleApiClient;
     private View view;
     private MapFragment mapFragment;
     private ProgressDialog pDialog;
     private AutoCompleteTextView searchBox;
-
+    private Button button;
     private Marker markers;
 
     public GMapFragment() {
@@ -70,6 +68,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         pDialog = new ProgressDialog(getActivity());
         pDialog.setMessage(getString(R.string.loading));
 
+        initDefaultButton();
         return view;
     }
 
@@ -111,16 +110,12 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         try {
 
-            goToGoDefaultLocation();
+            goToCurrentLocation();
             getFoodVehiclesData();
-
-        } catch (IOException ex) {
-
-            log(ex.getMessage());
-            Toast.makeText(getActivity(), getString(R.string.generic_error), Toast.LENGTH_SHORT).show();
 
         } catch (Exception ex) {
             log(ex.getMessage());
+            Toast.makeText(getActivity(), getString(R.string.generic_error), Toast.LENGTH_SHORT).show();
             if (pDialog != null) {
                 pDialog.dismiss();
             }
@@ -141,6 +136,26 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
     public void onConnectionFailed(ConnectionResult connectionResult) {
         log("Connection Failed.");
         Toast.makeText(getActivity(), "Connection failed", Toast.LENGTH_SHORT).show();
+    }
+
+    public void goToCurrentLocation() {
+
+        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+
+        if (location != null) {
+
+            double lat = location.getLatitude();
+            double lng = location.getLongitude();
+            LatLng ll = new LatLng(lat, lng);
+
+            CameraUpdate update = CameraUpdateFactory.newLatLngZoom(ll, ZOOM_LEVEL);
+            mMap.animateCamera(update);
+
+        } else {
+            Toast.makeText(getActivity(), R.string.geolocate_error, Toast.LENGTH_SHORT).show();
+            log("Unable to locate user");
+        }
+
     }
 
     private void goToGoDefaultLocation() throws IOException {
@@ -249,5 +264,20 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
     private void log(String msg) {
         Log.d(TAG, msg);
+    }
+
+    private void initDefaultButton() {
+        button = (Button) view.findViewById(R.id.default_location);
+        button.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                try {
+                    goToGoDefaultLocation();
+                } catch (IOException ex) {
+                    log(ex.getMessage());
+                    Toast.makeText(getActivity(), getString(R.string.generic_error), Toast.LENGTH_SHORT).show();
+                }
+            }
+        });
     }
 }

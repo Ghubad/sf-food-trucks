@@ -58,7 +58,7 @@ I have used [mcxiaoke/android-volley](https://github.com/mcxiaoke/android-volley
 License
 =========
 
-    Copyright (C) 2015 AndroidGradleTemplate by Jared Burrows
+    Copyright (C) 2015 San Francisco Food Trucks by Suhas Mandrawadkar
    
     Licensed under the Apache License, Version 2.0 (the "License");
     you may not use this file except in compliance with the License.
