@@ -5,6 +5,7 @@ import android.test.ActivityInstrumentationTestCase2;
 import android.widget.TextView;
 
 import com.google.android.gms.maps.MapFragment;
+import com.technortium.tracker.sffoodtrucks.view.HomeActivity;
 
 /**
  * Created by root on 22/7/15.
