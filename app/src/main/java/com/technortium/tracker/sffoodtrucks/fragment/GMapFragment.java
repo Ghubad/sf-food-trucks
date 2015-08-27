@@ -84,6 +84,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.TimeZone;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class GMapFragment extends Fragment implements OnRequestCallback, OnMapReadyCallback, GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener, LocationListener {
 
@@ -128,6 +130,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
     private LinearLayout searchLayout;
     private LatLng destiationPos;
     private LatLng lastKnownLocation;
+    private Timer waitingTimer;
 
     public GMapFragment() {
     }
@@ -1259,7 +1262,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         Log.d("animate", "Fetched " + gpsLocations.length + " points");
 
-        for (int i=0; i < gpsLocations.length-1; i++) {
+        for (int i=0; i < gpsLocations.length; i++) {
             com.technortium.tracker.sffoodtrucks.model.Location location = gpsLocations[i].getLocation();
 
             log(location.toString());
@@ -1278,7 +1281,12 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             letTheAnimationBegin();
             animate = true;
         }
-            //animator.startAnimation(true);
+
+        if(retryingAfterExausting) {
+            waitingTimer.cancel();
+            animateToNextPoint();
+        }
+        //animator.startAnimation(true);
 
     }
 
@@ -1478,13 +1486,13 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
             double distance = calculateDistance(startLatLng.latitude, startLatLng.longitude, toPosition.latitude, toPosition.longitude);
 
-            if (distance < 0.05)
+            if (distance < 1)
                 doAnim = false;
 
 
             if (order.getEstimated_delivery_time() != null) {
                 int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
-                String titleMsg = minutes + " mins to go !";
+                String titleMsg = minutes + " mins to go";
                 homeMarker.setTitle(titleMsg);
                 homeMarker.showInfoWindow();
             }
@@ -1519,12 +1527,30 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             //Log.d("animate", " Cordinates: " + startLatLng.latitude + "," + startLatLng.longitude + "," + " "+ toPosition.latitude + " " + toPosition.longitude + " Bearing: " + bearing);
         } else {
 
-            getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
+            retryMarkers();
+
+            /*getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
             Log.d("animate", "Ran out of points so I'm asking for more");
-            animateMarker(trackingMarker, markers.get(index).getPosition(),markers.get(index).getPosition(), 2000, lastBearing, false);
+            animateMarker(trackingMarker, markers.get(index).getPosition(),markers.get(index).getPosition(), 2000, lastBearing, false);*/
 
         }
     }
+
+
+    public void retryMarkers() {
+
+        waitingTimer = new Timer();
+        retryingAfterExausting = true;
+        waitingTimer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()), getLastMinTime());
+            }
+        },0,15000);
+
+    }
+
+    private boolean retryingAfterExausting = false;
 
     public String getCurrentTime() {
         SimpleDateFormat dateFormat= new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'",Locale.ENGLISH);
@@ -1567,11 +1593,11 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                                          // Post again 16ms later.
                                          handler.postDelayed(this, 16);
                                      } else {
-                                         if (index < markers.size() - 2)
+                                         if (index < markers.size() - 1)
                                              animateToNextPoint();
-                                         else {
-                                             Log.d("animate", "Inside animateMarker" + trackingMarker.getPosition());
-                                         }
+                                         /*else {
+                                             retryMarkers();
+                                         }*/
                                      }
                                  }
                              }
@@ -1588,11 +1614,11 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                         // Post again 16ms later.
                         handler.postDelayed(this, 16);
                     } else {
-                        if (index < markers.size() - 2)
+                        if (index < markers.size() - 1)
                             animateToNextPoint();
-                        else {
-                            Log.d("animate", "Inside animateMarker" + trackingMarker.getPosition());
-                        }
+                       /* else {
+                            retryMarkers();
+                        }*/
                     }
                 }
             });
