@@ -290,6 +290,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                     @Override
                     public void onResponse(Destination response) {
                         Log.d(TAG, response.toString() + "is accurate - " + response.getId());
+                        Log.d("Response" + " " + response.toString();
                         getOrderDetails(String.valueOf(order.getId()));
                         //getGpsLocationData(String.valueOf(order.getTrip().getId()));
                     }
@@ -522,6 +523,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                             public void onResponse(Order response) {
                                 log(response.toString());
                                 setOrderData(response);
+                                Log.d("Response" + " " + response.toString();
                             }
                         }, new Response.ErrorListener() {
                     @Override
@@ -631,6 +633,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                                 log(response.toString());
                                 //Toast.makeText(getActivity(), response.toString().substring(0,30), Toast.LENGTH_SHORT).show();
                                 storeMarkerData(response);
+                                Log.d("Response" + " " + response.toString();
                             }
                         }, new Response.ErrorListener() {
                     @Override
@@ -644,8 +647,6 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         AppController.getInstance().addToRequestQueue(jsonObjReq, SFFT);
 
     }
-
-    public boolean nextSetIsBeginFetched = false;
 
     private void getNextGpsLocationData(int trip_id, String min_time) {
         //if (nextSetIsBeginFetched)
@@ -1273,10 +1274,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         Log.d("animate", "Size after adding " + markers.size() + "with animate flag still " + animate);
 
-        if ((markers.size() > 2 && !animate) || nextSetIsBeginFetched) {
+        if ((markers.size() > 2 && !animate)) {
             letTheAnimationBegin();
             animate = true;
-            nextSetIsBeginFetched = false;
         }
             //animator.startAnimation(true);
 
@@ -1404,6 +1404,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         LatLngBounds bounds = b.build();
         CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 200);
 
+
+        mMap.moveCamera(cu);
+
         //CameraUpdateFactory.newCameraPosition(cameraPosition)
         mMap.animateCamera(cu
                 ,
@@ -1436,7 +1439,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                 e.printStackTrace();
         }
 
-        int dist = (int) results[0];
+       /* int dist = (int) results[0];
         if(dist<=0)
             return 0D;
 
@@ -1444,7 +1447,8 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         results[0]/=1000D;
         String distance = decimalFormat.format(results[0]);
         double d = Double.parseDouble(distance);
-        return d;
+        return d;*/
+        return results[0];
     }
 
     public float lastBearing = -1000;
@@ -1453,18 +1457,15 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
     public void animateToNextPoint() {
         if (lastIndex == -1)
             lastIndex = 0;
+
         if (index < markers.size() - 1) {
             index++;
-            LatLng _startLatLng = markers.get(lastIndex).getPosition();
+            /*LatLng _startLatLng = markers.get(lastIndex).getPosition();
             LatLng _toPosition = markers.get(index).getPosition();
 
             double _distance = calculateDistance(_startLatLng.latitude, _startLatLng.longitude, _toPosition.latitude, _toPosition.longitude);
-
+*/
             boolean doAnim = true;
-
-            if (_distance < 0.05)
-                doAnim = false;
-
 
             //long speedDuration = getTimeDifference(index) * 1000;
             //LatLng startLatLng = markers.get(index).getPosition();
@@ -1474,6 +1475,10 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             LatLng toPosition = markers.get(index).getPosition();
 
             double distance = calculateDistance(startLatLng.latitude, startLatLng.longitude, toPosition.latitude, toPosition.longitude);
+
+            if (distance < 0.05)
+                doAnim = false;
+
 
             if (order.getEstimated_delivery_time() != null) {
                 int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
@@ -1514,7 +1519,6 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
             getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
             Log.d("animate", "Ran out of points so I'm asking for more");
-            nextSetIsBeginFetched = true;
             animateMarker(trackingMarker, markers.get(index).getPosition(),markers.get(index).getPosition(), 2000, lastBearing, false);
 
         }
