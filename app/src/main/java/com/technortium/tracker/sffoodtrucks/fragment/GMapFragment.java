@@ -290,7 +290,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                     @Override
                     public void onResponse(Destination response) {
                         Log.d(TAG, response.toString() + "is accurate - " + response.getId());
-                        Log.d("Response" + " " + response.toString();
+                        Log.d("Response", response.toString());
                         getOrderDetails(String.valueOf(order.getId()));
                         //getGpsLocationData(String.valueOf(order.getTrip().getId()));
                     }
@@ -523,7 +523,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                             public void onResponse(Order response) {
                                 log(response.toString());
                                 setOrderData(response);
-                                Log.d("Response" + " " + response.toString();
+                                Log.d("Response",response.toString());
                             }
                         }, new Response.ErrorListener() {
                     @Override
@@ -633,7 +633,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                                 log(response.toString());
                                 //Toast.makeText(getActivity(), response.toString().substring(0,30), Toast.LENGTH_SHORT).show();
                                 storeMarkerData(response);
-                                Log.d("Response" + " " + response.toString();
+                                Log.d("Response",  response.toString());
                             }
                         }, new Response.ErrorListener() {
                     @Override
@@ -1407,15 +1407,17 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         mMap.moveCamera(cu);
 
+        animateToNextPoint();
+
         //CameraUpdateFactory.newCameraPosition(cameraPosition)
-        mMap.animateCamera(cu
+        /*mMap.animateCamera(cu
                 ,
                 2000,
                 new GoogleMap.CancelableCallback() {
 
                     @Override
                     public void onFinish() {
-                        animateToNextPoint();
+
                     }
 
                     @Override
@@ -1423,7 +1425,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                         System.out.println("cancelling camera");
                     }
                 }
-        );
+        );*/
 
     }
 
