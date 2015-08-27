@@ -526,7 +526,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                             public void onResponse(Order response) {
                                 log(response.toString());
                                 setOrderData(response);
-                                Log.d("Response",response.toString());
+                                Log.d("Response", response.toString());
                             }
                         }, new Response.ErrorListener() {
                     @Override
@@ -636,7 +636,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                                 log(response.toString());
                                 //Toast.makeText(getActivity(), response.toString().substring(0,30), Toast.LENGTH_SHORT).show();
                                 storeMarkerData(response);
-                                Log.d("Response",  response.toString());
+                                Log.d("Response", response.toString());
                             }
                         }, new Response.ErrorListener() {
                     @Override
@@ -1527,7 +1527,14 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             //Log.d("animate", " Cordinates: " + startLatLng.latitude + "," + startLatLng.longitude + "," + " "+ toPosition.latitude + " " + toPosition.longitude + " Bearing: " + bearing);
         } else {
 
-            retryMarkers();
+            waitingTimer = new Timer();
+            retryingAfterExausting = true;
+            waitingTimer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()), getLastMinTime());
+                }
+            },0,15000);
 
             /*getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
             Log.d("animate", "Ran out of points so I'm asking for more");
@@ -1539,14 +1546,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
     public void retryMarkers() {
 
-        waitingTimer = new Timer();
-        retryingAfterExausting = true;
-        waitingTimer.schedule(new TimerTask() {
-            @Override
-            public void run() {
-                getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()), getLastMinTime());
-            }
-        },0,15000);
+
 
     }
 
@@ -1593,11 +1593,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                                          // Post again 16ms later.
                                          handler.postDelayed(this, 16);
                                      } else {
-                                         if (index < markers.size() - 1)
                                              animateToNextPoint();
-                                         /*else {
-                                             retryMarkers();
-                                         }*/
                                      }
                                  }
                              }
@@ -1614,11 +1610,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                         // Post again 16ms later.
                         handler.postDelayed(this, 16);
                     } else {
-                        if (index < markers.size() - 1)
                             animateToNextPoint();
-                       /* else {
-                            retryMarkers();
-                        }*/
                     }
                 }
             });
