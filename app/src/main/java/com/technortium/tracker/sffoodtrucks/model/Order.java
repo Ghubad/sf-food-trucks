@@ -9,6 +9,15 @@ public class Order {
     private Trip trip;
     private String estimated_delivery_time;
     private String status;
+    private Destination destination;
+
+    public Destination getDestination() {
+        return destination;
+    }
+
+    public void setDestination(Destination destination) {
+        this.destination = destination;
+    }
 
     public String getStatus() {
         return status;
@@ -49,6 +58,7 @@ public class Order {
                 ", trip=" + trip +
                 ", estimated_delivery_time='" + estimated_delivery_time + '\'' +
                 ", status='" + status + '\'' +
+                ", destination=" + destination +
                 '}';
     }
 }

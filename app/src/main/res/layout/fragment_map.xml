@@ -17,6 +17,35 @@
 
     <LinearLayout
         android:orientation="horizontal"
+        android:id="@+id/editTextLayout"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:padding="8dp"
+        android:background="#FFFFFF"
+        >
+
+
+        <EditText
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/orderEdit"
+             android:layout_weight="4"
+            android:hint="Enter order id"/>
+
+        <Button
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Track"
+            android:id="@+id/button" />
+
+
+    </LinearLayout>
+
+
+
+    <LinearLayout
+        android:orientation="horizontal"
         android:id="@+id/infoLayout"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -43,8 +72,6 @@
             android:layout_weight="1"/>
 
     </LinearLayout>
-
-
 
 
 </RelativeLayout>

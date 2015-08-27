@@ -15,6 +15,15 @@ public class GpsLocation {
     private String trip_id;
     private String created_at;
     private String modified_at;
+    private boolean fetch_next_points;
+
+    public boolean isFetch_next_points() {
+        return fetch_next_points;
+    }
+
+    public void setFetch_next_points(boolean fetch_next_points) {
+        this.fetch_next_points = fetch_next_points;
+    }
 
     public int getId() {
         return id;
@@ -109,6 +118,7 @@ public class GpsLocation {
                 ", trip_id='" + trip_id + '\'' +
                 ", created_at='" + created_at + '\'' +
                 ", modified_at='" + modified_at + '\'' +
+                ", fetch_next_points=" + fetch_next_points +
                 '}';
     }
 }

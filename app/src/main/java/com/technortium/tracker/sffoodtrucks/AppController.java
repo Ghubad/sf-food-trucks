@@ -46,14 +46,14 @@ public class AppController extends Application {
     public <T> void addToRequestQueue(Request<T> req, String tag) {
 
         req.setTag(TextUtils.isEmpty(tag) ? TAG : tag);
-        req.setRetryPolicy(new DefaultRetryPolicy(20 * 1000, 0,
+        req.setRetryPolicy(new DefaultRetryPolicy(20 * 1000, 3,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         getRequestQueue().add(req);
     }
 
     public <T> void addToRequestQueue(Request<T> req) {
         req.setTag(TAG);
-        req.setRetryPolicy(new DefaultRetryPolicy(20 * 1000, 0,
+        req.setRetryPolicy(new DefaultRetryPolicy(20 * 1000, 3,
                 DefaultRetryPolicy.DEFAULT_BACKOFF_MULT));
         getRequestQueue().add(req);
     }

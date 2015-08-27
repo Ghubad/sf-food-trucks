@@ -22,6 +22,7 @@ import android.view.animation.Interpolator;
 import android.view.animation.LinearInterpolator;
 import android.widget.AutoCompleteTextView;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -55,11 +56,14 @@ import com.google.android.gms.maps.model.PolylineOptions;
 import com.google.gson.Gson;
 import com.technortium.tracker.sffoodtrucks.AppController;
 import com.technortium.tracker.sffoodtrucks.R;
+import com.technortium.tracker.sffoodtrucks.model.Destination;
 import com.technortium.tracker.sffoodtrucks.model.FoodTruck;
 import com.technortium.tracker.sffoodtrucks.model.FoodTruckStore;
 import com.technortium.tracker.sffoodtrucks.model.GpsLocation;
 import com.technortium.tracker.sffoodtrucks.model.Order;
 import com.technortium.tracker.sffoodtrucks.model.ResponseObject;
+import com.technortium.tracker.sffoodtrucks.model.UpdateLocation;
+import com.technortium.tracker.sffoodtrucks.network.CustomJsonRequest;
 import com.technortium.tracker.sffoodtrucks.network.CustomRequest;
 import com.technortium.tracker.sffoodtrucks.network.OnRequestCallback;
 
@@ -68,6 +72,7 @@ import org.json.JSONObject;
 
 import java.io.IOException;
 import java.text.DateFormat;
+import java.text.DecimalFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -118,6 +123,11 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
     private int index;
     private Order order;
     private Marker homeMarker;
+    private EditText courierEdit;
+    private Button trackButton;
+    private LinearLayout searchLayout;
+    private LatLng destiationPos;
+    private LatLng lastKnownLocation;
 
     public GMapFragment() {
     }
@@ -134,11 +144,32 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         pDialog = new ProgressDialog(getActivity());
         pDialog.setMessage(getString(R.string.loading));
 
-
+        initSearchLayout();
         //setUpDatabase();
 
         //initDefaultButton();
         return view;
+    }
+
+    public void initSearchLayout() {
+
+        searchLayout = (LinearLayout)view.findViewById(R.id.editTextLayout);
+        courierEdit = (EditText)searchLayout.findViewById(R.id.orderEdit);
+        trackButton = (Button) searchLayout.findViewById(R.id.button);
+        trackButton.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                String message = "";
+                if(courierEdit.getText().toString().equals("")) {
+                    message = "Please enter order id :)";
+                    Toast.makeText(getActivity(), message, Toast.LENGTH_SHORT).show();
+                } else {
+                    //start tracking
+                    getOrderDetails(courierEdit.getText().toString());
+                }
+
+            }
+        });
     }
 
     private void setUpDatabase() {
@@ -165,19 +196,33 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         mMap = googleMap;
         locations = new ArrayList<LatLng>();
-        mMap.setMyLocationEnabled(true);
+
         if (mMap != null) {
             initGoogleApiClient();
-            //mMap.setMyLocationEnabled(true);
+            mMap.setMyLocationEnabled(true);
 
-            /*mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
+            mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
                 @Override
                 public void onMapLongClick(LatLng latLng) {
 
-                    Marker marker = mMap.addMarker(new MarkerOptions().position(latLng));
-                    markers.add(marker);
+                    //drawHomeMarker(latLng);
 
-                    if (markers.size() == 7) {
+                    updateCustomLocation(latLng);
+
+                    homeMarker = mMap.addMarker(new MarkerOptions().position(latLng));
+
+                    if (order.getEstimated_delivery_time() != null) {
+                        int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
+                        String titleMsg = minutes + " mins to go !";
+                        homeMarker.setTitle(titleMsg);
+                        homeMarker.showInfoWindow();
+                    }
+
+                    //call his API request
+
+
+
+                   /* if (markers.size() == 7) {
 
                         Toast.makeText(getActivity(), "Thank you for adding 7 mMarkers. Let there be Animation !", Toast.LENGTH_SHORT).show();
                         animator.startAnimation(true);
@@ -186,12 +231,12 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
                         Toast.makeText(getActivity(), (7- markers.size()) +" more mMarkers to go !", Toast.LENGTH_SHORT).show();
 
-                    }
+                    }*/
 
 
                     //First attempt for animating marker
 
-                    *//*mMarkers = mMap.addMarker(marker);
+                    /*mMarkers = mMap.addMarker(marker);
 
                     locations.add(latLng);
 
@@ -204,19 +249,60 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                         }
                     } else {
                         Toast.makeText(getActivity(), (7- locations.size()) +" more mMarkers to go !", Toast.LENGTH_SHORT).show();
-                    }*//*
+                    }*/
 
                     //Code for simplest animation
                     //LatLngInterpolator interpolator = new LatLngInterpolator();
                     //animateMarkerToICS(vMarker, latLng, interpolator);
                 }
 
-            });*/
+            });
 
         } else {
             Toast.makeText(getActivity(), getString(R.string.map_unavailable), Toast.LENGTH_SHORT).show();
             log(getString(R.string.map_unavailable));
         }
+
+    }
+
+    public void updateCustomLocation(LatLng latLng) {
+
+        String url = "https://hypertrack-api-staging.herokuapp.com/api/v1/destinations/" + order.getDestination().getId() + "/update_location/?order_id=" + order.getId();
+
+        com.technortium.tracker.sffoodtrucks.model.Location loc = new com.technortium.tracker.sffoodtrucks.model.Location();
+
+        loc.setType("Point");
+        double lng = latLng.longitude;
+        double lat = latLng.latitude;
+        double[] cords = {lng, lat};
+        loc.setCoordinates(cords);
+
+        UpdateLocation updateLocation = new UpdateLocation();
+        updateLocation.setLocation(loc);
+
+        Gson gson = new Gson();
+        String jsonString = gson.toJson(updateLocation);
+
+        CustomJsonRequest<Destination> jsonObjReq = new CustomJsonRequest<Destination>(
+                url, jsonString, Destination.class,
+                new Response.Listener<Destination>() {
+
+                    @Override
+                    public void onResponse(Destination response) {
+                        Log.d(TAG, response.toString() + "is accurate - " + response.getId());
+                        getOrderDetails(String.valueOf(order.getId()));
+                        //getGpsLocationData(String.valueOf(order.getTrip().getId()));
+                    }
+                },
+                new Response.ErrorListener() {
+
+                    @Override
+                    public void onErrorResponse(VolleyError error) {
+                        VolleyLog.d(TAG, "Error: " + error.getMessage());
+                    }
+                });
+
+        AppController.getInstance().addToRequestQueue(jsonObjReq, SFFT);
 
     }
 
@@ -244,7 +330,6 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         try {
 
             goToCurrentLocation();
-            getOrderDetails("3"); // add textBox;
             //Get Gps logs
             //getGpsLocationData();
 
@@ -319,8 +404,6 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             LatLng ll = new LatLng(lat, lng);
 
             //drawMarker(ll);
-
-            drawHomeMarker(ll);
 
             CameraUpdate update = CameraUpdateFactory.newLatLngZoom(ll, ZOOM_LEVEL);
             mMap.animateCamera(update);
@@ -453,6 +536,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
     }
 
     private void setOrderData(Order response) {
+
         this.order = response;
 
         if(!response.getStatus().equalsIgnoreCase("out_for_delivery")) {
@@ -461,38 +545,71 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         } else {
 
-            order.setEstimated_delivery_time("in 58 mins");
-            LinearLayout ll = (LinearLayout) view.findViewById(R.id.infoLayout);
+            if(order != null && order.getDestination() != null) {
 
-            TextView nameTextView = (TextView) ll.findViewById(R.id.nameInfo);
-            TextView descTextView = (TextView) ll.findViewById(R.id.descriptionInfo);
-            TextView licenseView = (TextView) ll.findViewById(R.id.licenseInfo);
+                if(order.getDestination().is_location_accurate()) {
 
-            if (order != null && order.getEstimated_delivery_time() != null) {
+                    //marker add
+                    //Estimated time of arrival
 
-                if (order.getTrip() != null && order.getTrip().getCourier() != null) {
 
-                    if(order.getTrip().getCourier().getName() != null)
-                        nameTextView.setText(order.getTrip().getCourier().getName());
+                    if(order.getDestination().getLocation() != null) {
+                        com.technortium.tracker.sffoodtrucks.model.Location loc = order.getDestination().getLocation();
 
-                    if(order.getTrip().getCourier().getVehicle() != null) {
+                        double[] coords = loc.getCoordinates();
 
-                        if(order.getTrip().getCourier().getVehicle().getDescription() != null)
-                            descTextView.setText(order.getTrip().getCourier().getVehicle().getDescription());
+                        destiationPos = new LatLng(coords[1],coords[0]);
 
-                        if(order.getTrip().getCourier().getVehicle().getLicense_plate()!= null)
-                            licenseView.setText(order.getTrip().getCourier().getVehicle().getLicense_plate());
+
+                        homeMarker = mMap.addMarker(new MarkerOptions().position(destiationPos));
+
+                        if (order.getEstimated_delivery_time() != null) {
+                            int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
+                            String titleMsg = minutes + " mins to go !";
+                            homeMarker.setTitle(titleMsg);
+                            homeMarker.showInfoWindow();
+                        }
+
                     }
 
-                }
 
-                if (homeMarker != null)
-                    homeMarker.setTitle(order.getEstimated_delivery_time());
-                homeMarker.showInfoWindow();
+                    LinearLayout ll = (LinearLayout) view.findViewById(R.id.infoLayout);
+
+                    TextView nameTextView = (TextView) ll.findViewById(R.id.nameInfo);
+                    TextView descTextView = (TextView) ll.findViewById(R.id.descriptionInfo);
+                    TextView licenseView = (TextView) ll.findViewById(R.id.licenseInfo);
+
+                    if (order != null && order.getEstimated_delivery_time() != null) {
+
+                        if (order.getTrip() != null && order.getTrip().getCourier() != null) {
+
+                            if(order.getTrip().getCourier().getName() != null)
+                                nameTextView.setText(order.getTrip().getCourier().getName());
+
+                            if(order.getTrip().getCourier().getVehicle() != null) {
+
+                                if(order.getTrip().getCourier().getVehicle().getDescription() != null)
+                                    descTextView.setText(order.getTrip().getCourier().getVehicle().getDescription());
+
+                                if(order.getTrip().getCourier().getVehicle().getLicense_plate()!= null)
+                                    licenseView.setText(order.getTrip().getCourier().getVehicle().getLicense_plate());
+                            }
+
+                        }
+
+                    }
+
+                    String trip_id = String.valueOf(response.getTrip().getId());
+                    getGpsLocationData(trip_id);
+
+                } else {
+                    //logic for long press
+                    Toast.makeText(getActivity(), "Please select delivery location on map", Toast.LENGTH_LONG).show();
+
+                }
             }
 
-            String trip_id = String.valueOf(response.getTrip().getId());
-            getGpsLocationData(trip_id);
+
 
         }
     }
@@ -501,7 +618,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         Log.d("network", "Location points for trip_id - " + trip_id);
         String url = "https://hypertrack-api-staging.herokuapp.com/api/v1/gps/filtered/?start=1&trip_id="+trip_id; //+cDateTime;
+        //String url = "https://hypertrack-api-staging.herokuapp.com/api/v1/gps/?trip_id=153"; //+String.valueOf(trip_id)+"&min_time="+min_time;
 
+        Log.d("animate", "Fetching first set of points from: " + url);
         //show dialog and close when you get response
 
         CustomRequest<ResponseObject> jsonObjReq =
@@ -526,10 +645,15 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
     }
 
-    private void getNextGpsLocationData(int trip_id, String min_time) {
+    public boolean nextSetIsBeginFetched = false;
 
+    private void getNextGpsLocationData(int trip_id, String min_time) {
+        //if (nextSetIsBeginFetched)
+        //    return;
+        //nextSetIsBeginFetched = true;
         log("fetchign for trip_id " + trip_id + " min_time: " + min_time);
         String url = "https://hypertrack-api-staging.herokuapp.com/api/v1/gps/filtered/?trip_id="+String.valueOf(trip_id)+"&min_time="+min_time;
+
 
         //show dialog and close when you get response
 
@@ -703,11 +827,11 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
     //Animation POC code down below
 
-    private Animator animator = new Animator();
+    /*private Animator animator = new Animator();*/
 
     int currentPt;
 
-    GoogleMap.CancelableCallback MyCancelableCallback =
+  /*  GoogleMap.CancelableCallback MyCancelableCallback =
             new GoogleMap.CancelableCallback(){
 
                 @Override
@@ -767,9 +891,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
                 }
 
-            };
+            };*/
 
-    public class Animator implements Runnable {
+    /*public class Animator implements Runnable {
 
         private static final long ANIMATE_SPEEED = 2000; //controls speeds
         private static final int ANIMATE_SPEEED_TURN = 500; // controls speed turn
@@ -797,7 +921,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             currentIndex = 0;
             endLatLng = getEndLatLng();
             beginLatLng = getBeginLatLng();
-            GMapFragment.this.speed = getTimeDifference(0);
+            GMapFragment.this.speed = getTimeDifference(0,1);
         }
 
         public void stop() {
@@ -873,9 +997,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             return mMap.addPolyline(rectOptions);
         }
 
-        /**
+        *//**
          * Add the marker to the polyline.
-         */
+         *//*
         private void updatePolyLine(LatLng latLng) {
             List<LatLng> points = polyLine.getPoints();
             points.add(latLng);
@@ -1008,7 +1132,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                 }
             }
         }
-    };
+    };*/
 
     /**
      * Allows us to navigate to a certain point.
@@ -1132,6 +1256,8 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
         GpsLocation[] gpsLocations = responseObject.getGpsLocations();
 
+        Log.d("animate", "Fetched " + gpsLocations.length + " points");
+
         for (int i=0; i < gpsLocations.length-1; i++) {
             com.technortium.tracker.sffoodtrucks.model.Location location = gpsLocations[i].getLocation();
 
@@ -1145,38 +1271,73 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             marker.setVisible(false);
         }
 
-        if (markers.size() > 2 && !animate) {
+        Log.d("animate", "Size after adding " + markers.size() + "with animate flag still " + animate);
+
+        if ((markers.size() > 2 && !animate) || nextSetIsBeginFetched) {
             letTheAnimationBegin();
             animate = true;
+            nextSetIsBeginFetched = false;
         }
             //animator.startAnimation(true);
 
     }
 
-    private long getTimeDifference(int currentIndex) {
+    private int getTheEstimatedTime(String currentTime, String estimatedTime) {
+
+        long seconds = 0;
+        int minutes = 0;
+
+        Log.d("ETA", "ETA " + currentTime + " " + estimatedTime);
+        String currentTimeString = currentTime.substring(0,currentTime.length()-5);
+        String estimatedTimeString = estimatedTime.substring(0,estimatedTime.length()-1);
+        Log.d("ETA", "ETA " + currentTimeString + " " + estimatedTimeString);
+
+        DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss");
+
+        try {
+
+            Date startDate = df.parse(currentTimeString);
+            Date endDate = df.parse(estimatedTimeString);
+            seconds = (endDate.getTime() - startDate.getTime())/1000;
+            minutes = (int)seconds/60;
+
+            //Log.d("Animate", startTimeStamp.toString() + " " + endTimeStamp.toString() + " Seconds: " + seconds);
+        } catch(ParseException ex) {
+            ex.printStackTrace();
+        }
+
+        if(minutes < 0) minutes=0;
+
+        Log.d("ETA", "ETA" + minutes);
+        return minutes;
+    }
+
+    private long getTimeDifference(int firstIndex) {
 
         long seconds = 0;
 
-        if (currentIndex < gpsLocationList.size()-2) {
-            GpsLocation startGpsLocation = gpsLocationList.get(currentIndex);
-            GpsLocation endGpsLocation = gpsLocationList.get(currentIndex+1);
+
+        if (firstIndex < gpsLocationList.size()-2) {
+            GpsLocation startGpsLocation = gpsLocationList.get(firstIndex);
+            GpsLocation endGpsLocation = gpsLocationList.get(firstIndex + 1);
 
             String startTimeStamp = formatDate(startGpsLocation.getCreated_at());
             String endTimeStamp = formatDate(endGpsLocation.getCreated_at());
 
-            //Log.d("Animate", startTimeStamp + " " + endTimeStamp);
+            Log.d("Animate", startTimeStamp + " " + endTimeStamp);
             DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS");
             try {
+
                 Date startDate = df.parse(startTimeStamp);
                 Date endDate = df.parse(endTimeStamp);
                 seconds = (endDate.getTime() - startDate.getTime())/1000;
-
                 //Log.d("Animate", startTimeStamp.toString() + " " + endTimeStamp.toString() + " Seconds: " + seconds);
             } catch(ParseException ex) {
                 ex.printStackTrace();
             }
 
         }
+
         return seconds;
     }
 
@@ -1214,6 +1375,8 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
     }
 
     public void letTheAnimationBegin() {
+        
+        searchLayout.setVisibility(View.INVISIBLE);
 
         index =  0;
         LatLng markerPos = markers.get(0).getPosition();
@@ -1221,11 +1384,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         float bearing = bearingBetweenLatLngs(markerPos, secondPos);
 
         LatLngBounds.Builder b = new LatLngBounds.Builder();
-        Location location = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
-        LatLng currentPos = new LatLng(location.getLatitude(),location.getLongitude());
 
         b.include(markerPos);
-        b.include(currentPos);
+        b.include(destiationPos);
 
         trackingMarker = mMap.addMarker(new MarkerOptions().position(markerPos)
                 .title("title")
@@ -1241,10 +1402,10 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                         .build();
 
         LatLngBounds bounds = b.build();
-        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 120);
+        CameraUpdate cu = CameraUpdateFactory.newLatLngBounds(bounds, 200);
 
         //CameraUpdateFactory.newCameraPosition(cameraPosition)
-        mMap.animateCamera(CameraUpdateFactory.newCameraPosition(cameraPosition)
+        mMap.animateCamera(cu
                 ,
                 2000,
                 new GoogleMap.CancelableCallback() {
@@ -1263,14 +1424,66 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
     }
 
+    public double calculateDistance(double fromLatitude,double fromLongitude,double toLatitude,double toLongitude)
+    {
+
+        float results[] = new float[1];
+
+        try {
+            Location.distanceBetween(fromLatitude,fromLongitude, toLatitude, toLongitude, results);
+        } catch (Exception e) {
+            if (e != null)
+                e.printStackTrace();
+        }
+
+        int dist = (int) results[0];
+        if(dist<=0)
+            return 0D;
+
+        DecimalFormat decimalFormat = new DecimalFormat("#.##");
+        results[0]/=1000D;
+        String distance = decimalFormat.format(results[0]);
+        double d = Double.parseDouble(distance);
+        return d;
+    }
+
     public float lastBearing = -1000;
+    public int lastIndex = -1;
 
     public void animateToNextPoint() {
-        index++;
-        if (index < markers.size() -2) {
-            long speedDuration = getTimeDifference(index) * 1000;
-            LatLng startLatLng = markers.get(index).getPosition();
-            LatLng toPosition = markers.get(index + 1).getPosition();
+        if (lastIndex == -1)
+            lastIndex = 0;
+        if (index < markers.size() - 1) {
+            index++;
+            LatLng _startLatLng = markers.get(lastIndex).getPosition();
+            LatLng _toPosition = markers.get(index).getPosition();
+
+            double _distance = calculateDistance(_startLatLng.latitude, _startLatLng.longitude, _toPosition.latitude, _toPosition.longitude);
+
+            boolean doAnim = true;
+
+            if (_distance < 0.05)
+                doAnim = false;
+
+
+            //long speedDuration = getTimeDifference(index) * 1000;
+            //LatLng startLatLng = markers.get(index).getPosition();
+            long speedDuration = getTimeDifference(index-1) * 1000;
+
+            LatLng startLatLng = markers.get(lastIndex).getPosition();
+            LatLng toPosition = markers.get(index).getPosition();
+
+            double distance = calculateDistance(startLatLng.latitude, startLatLng.longitude, toPosition.latitude, toPosition.longitude);
+
+            if (order.getEstimated_delivery_time() != null) {
+                int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
+                String titleMsg = minutes + " mins to go !";
+                homeMarker.setTitle(titleMsg);
+                homeMarker.showInfoWindow();
+            }
+
+            Log.d("animate", "Points: " + startLatLng + " " + toPosition + "Distance: " + distance);
+
             boolean coordsChanged = true;
             if (startLatLng.longitude == toPosition.longitude && startLatLng.latitude == toPosition.latitude)
                 coordsChanged = false;
@@ -1282,14 +1495,28 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             lastBearing = bearing;
 
             trackingMarker.setRotation(bearing);
-            animateMarker(trackingMarker, startLatLng, toPosition, speedDuration, bearing);
 
-            if (index == markers.size()-6) {
-               // getGpsLocationData();
-                getNextGpsLocationData(49,getLastMinTime());
+            if (doAnim)
+                lastIndex = index;
+
+            int bufferSize = markers.size() - index;
+
+            if (gpsLocationList.get(index-1).isFetch_next_points() ) {
+                getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
+                Log.d("animate","Fetching next set of points because I was asked to");
             }
-            Log.d("animate", " Indexes: " + index + " " + (index + 1) + " " + speedDuration +"secs" + " Bearing: " + bearing);
+
+            animateMarker(trackingMarker, startLatLng, toPosition, speedDuration, bearing, doAnim);
+            Log.d("animate", " Indexes: " + lastIndex + " " + index + " " + speedDuration + "secs" + " Bearing: " + bearing + " Fetch " + gpsLocationList.get(index-1).isFetch_next_points());
+            Log.d("animate", " Gps cordinates ids: " + gpsLocationList.get(lastIndex).getId() + " " +  gpsLocationList.get(index).getId());
             //Log.d("animate", " Cordinates: " + startLatLng.latitude + "," + startLatLng.longitude + "," + " "+ toPosition.latitude + " " + toPosition.longitude + " Bearing: " + bearing);
+        } else {
+
+            getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
+            Log.d("animate", "Ran out of points so I'm asking for more");
+            nextSetIsBeginFetched = true;
+            animateMarker(trackingMarker, markers.get(index).getPosition(),markers.get(index).getPosition(), 2000, lastBearing, false);
+
         }
     }
 
@@ -1306,50 +1533,63 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
     //Try replacing marker with tracing marker
     public void animateMarker(final Marker marker, final LatLng startLatLng, final LatLng toPosition, final long speedDuration,
-                              final float bearing) {
+                              final float bearing, final boolean doAnim) {
         final Handler handler = new Handler();
         final long start = SystemClock.uptimeMillis();
         final int duration = (speedDuration <= 0) ? 1: (int) speedDuration;
 
         final Interpolator interpolator = new LinearInterpolator();
 
-        handler.post(new Runnable() {
-            @Override
-            public void run() {
+        if(doAnim) {
+            handler.post(new Runnable() {
+                             @Override
+                             public void run() {
+                                 {
+                                     long elapsed = SystemClock.uptimeMillis() - start;
+                                     float t = interpolator.getInterpolation((float) elapsed
+                                             / speedDuration);
+                                     double lng = t * toPosition.longitude + (1 - t)
+                                             * startLatLng.longitude;
+                                     double lat = t * toPosition.latitude + (1 - t)
+                                             * startLatLng.latitude;
+                                     LatLng ll = new LatLng(lat, lng);
+                                     marker.setPosition(ll);
 
-                long elapsed = SystemClock.uptimeMillis() - start;
-                float t = interpolator.getInterpolation((float) elapsed
-                        / speedDuration);
-                double lng = t * toPosition.longitude + (1 - t)
-                        * startLatLng.longitude;
-                double lat = t * toPosition.latitude + (1 - t)
-                        * startLatLng.latitude;
-                LatLng ll = new LatLng(lat, lng);
-                marker.setPosition(ll);
+                                     lastKnownLocation = ll;
 
-     /*          CameraPosition cameraPosition =
-                        new CameraPosition.Builder()
-                                .target(ll) // changed this...
-//                                    .bearing(bearingL  + BEARING_OFFSET)
-//                                    .tilt(tilt)
-                                .zoom(mMap.getCameraPosition().zoom)
-                                .build();
-
-                mMap.animateCamera(
-                        CameraUpdateFactory.newCameraPosition(cameraPosition),
-                        duration,
-                        null
-                );*/
-
-                if (t < 1.0) {
-                    // Post again 16ms later.
-                    handler.postDelayed(this, 16);
-                } else {
-                    if (index < markers.size() - 2)
-                        animateToNextPoint();
+                                     if (t < 1.0) {
+                                         // Post again 16ms later.
+                                         handler.postDelayed(this, 16);
+                                     } else {
+                                         if (index < markers.size() - 2)
+                                             animateToNextPoint();
+                                         else {
+                                             Log.d("animate", "Inside animateMarker" + trackingMarker.getPosition());
+                                         }
+                                     }
+                                 }
+                             }
+                         }
+            );
+        } else {
+            handler.post(new Runnable() {
+                @Override
+                public void run() {
+                    long elapsed = SystemClock.uptimeMillis() - start;
+                    float t = interpolator.getInterpolation((float) elapsed
+                            / speedDuration);
+                    if (t < 1.0) {
+                        // Post again 16ms later.
+                        handler.postDelayed(this, 16);
+                    } else {
+                        if (index < markers.size() - 2)
+                            animateToNextPoint();
+                        else {
+                            Log.d("animate", "Inside animateMarker" + trackingMarker.getPosition());
+                        }
+                    }
                 }
-            }
-        });
-
+            });
+        }
     }
 }
