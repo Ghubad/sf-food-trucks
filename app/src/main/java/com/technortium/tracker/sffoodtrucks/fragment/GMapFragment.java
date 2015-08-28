@@ -1283,6 +1283,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
         }
 
         if(retryingAfterExausting) {
+            retryingAfterExausting=false;
             waitingTimer.cancel();
             animateToNextPoint();
         }
@@ -1489,6 +1490,9 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             if (distance < 1)
                 doAnim = false;
 
+            if (speedDuration < 0) {
+                speedDuration = 0;
+            }
 
             if (order.getEstimated_delivery_time() != null) {
                 int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
@@ -1511,43 +1515,36 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
 
             trackingMarker.setRotation(bearing);
 
-            if (doAnim)
-                lastIndex = index;
-
-            int bufferSize = markers.size() - index;
-
             if (gpsLocationList.get(index-1).isFetch_next_points() ) {
                 getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
                 Log.d("animate","Fetching next set of points because I was asked to");
             }
 
             animateMarker(trackingMarker, startLatLng, toPosition, speedDuration, bearing, doAnim);
-            Log.d("animate", " Indexes: " + lastIndex + " " + index + " " + speedDuration + "secs" + " Bearing: " + bearing + " Fetch " + gpsLocationList.get(index-1).isFetch_next_points());
+            Log.d("animate", " Indexes: " + lastIndex + " " + index + " " + speedDuration + "secs" + " Bearing: " + bearing + " Fetch " + gpsLocationList.get(index - 1).isFetch_next_points());
             Log.d("animate", " Gps cordinates ids: " + gpsLocationList.get(lastIndex).getId() + " " +  gpsLocationList.get(index).getId());
+
+            if (doAnim)
+                lastIndex = index;
             //Log.d("animate", " Cordinates: " + startLatLng.latitude + "," + startLatLng.longitude + "," + " "+ toPosition.latitude + " " + toPosition.longitude + " Bearing: " + bearing);
         } else {
+            Log.d("animate", "Ran out of points so I'm asking for more");
 
             waitingTimer = new Timer();
             retryingAfterExausting = true;
-            waitingTimer.schedule(new TimerTask() {
+            waitingTimer.scheduleAtFixedRate(new TimerTask() {
                 @Override
                 public void run() {
+                    Log.d("Timer", "Scheduled run");
                     getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()), getLastMinTime());
                 }
             },0,15000);
 
-            /*getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
-            Log.d("animate", "Ran out of points so I'm asking for more");
-            animateMarker(trackingMarker, markers.get(index).getPosition(),markers.get(index).getPosition(), 2000, lastBearing, false);*/
+            getNextGpsLocationData(Integer.valueOf(gpsLocationList.get(lastIndex).getTrip_id()),getLastMinTime());
+            //Log.d("animate", "Ran out of points so I'm asking for more");
+            //animateMarker(trackingMarker, markers.get(index).getPosition(),markers.get(index).getPosition(), 2000, lastBearing, false);
 
         }
-    }
-
-
-    public void retryMarkers() {
-
-
-
     }
 
     private boolean retryingAfterExausting = false;
