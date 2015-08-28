@@ -204,24 +204,31 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
             initGoogleApiClient();
             mMap.setMyLocationEnabled(true);
 
-            mMap.setOnMapLongClickListener(new GoogleMap.OnMapLongClickListener() {
-                @Override
-                public void onMapLongClick(LatLng latLng) {
+        } else {
+            Toast.makeText(getActivity(), getString(R.string.map_unavailable), Toast.LENGTH_SHORT).show();
+            log(getString(R.string.map_unavailable));
+        }
 
-                    //drawHomeMarker(latLng);
+    }
 
-                    updateCustomLocation(latLng);
+    GoogleMap.OnMapLongClickListener longClickListener = new GoogleMap.OnMapLongClickListener() {
+        @Override
+        public void onMapLongClick(LatLng latLng) {
 
-                    homeMarker = mMap.addMarker(new MarkerOptions().position(latLng));
+            //drawHomeMarker(latLng);
 
-                    if (order.getEstimated_delivery_time() != null) {
-                        int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
-                        String titleMsg = minutes + " mins to go !";
-                        homeMarker.setTitle(titleMsg);
-                        homeMarker.showInfoWindow();
-                    }
+            updateCustomLocation(latLng);
 
-                    //call his API request
+            homeMarker = mMap.addMarker(new MarkerOptions().position(latLng));
+
+            if (order.getEstimated_delivery_time() != null) {
+                int minutes = getTheEstimatedTime(getCurrentTime(),order.getEstimated_delivery_time());
+                String titleMsg = minutes + " mins to go !";
+                homeMarker.setTitle(titleMsg);
+                homeMarker.showInfoWindow();
+            }
+
+            //call his API request
 
 
 
@@ -237,7 +244,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                     }*/
 
 
-                    //First attempt for animating marker
+            //First attempt for animating marker
 
                     /*mMarkers = mMap.addMarker(marker);
 
@@ -254,19 +261,12 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                         Toast.makeText(getActivity(), (7- locations.size()) +" more mMarkers to go !", Toast.LENGTH_SHORT).show();
                     }*/
 
-                    //Code for simplest animation
-                    //LatLngInterpolator interpolator = new LatLngInterpolator();
-                    //animateMarkerToICS(vMarker, latLng, interpolator);
-                }
-
-            });
-
-        } else {
-            Toast.makeText(getActivity(), getString(R.string.map_unavailable), Toast.LENGTH_SHORT).show();
-            log(getString(R.string.map_unavailable));
+            //Code for simplest animation
+            //LatLngInterpolator interpolator = new LatLngInterpolator();
+            //animateMarkerToICS(vMarker, latLng, interpolator);
         }
 
-    }
+    };
 
     public void updateCustomLocation(LatLng latLng) {
 
@@ -294,6 +294,7 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                     public void onResponse(Destination response) {
                         Log.d(TAG, response.toString() + "is accurate - " + response.getId());
                         Log.d("Response", response.toString());
+                        mMap.setOnMapLongClickListener(null);
                         getOrderDetails(String.valueOf(order.getId()));
                         //getGpsLocationData(String.valueOf(order.getTrip().getId()));
                     }
@@ -608,6 +609,8 @@ public class GMapFragment extends Fragment implements OnRequestCallback, OnMapRe
                     getGpsLocationData(trip_id);
 
                 } else {
+
+                    mMap.setOnMapLongClickListener(longClickListener);
                     //logic for long press
                     Toast.makeText(getActivity(), "Please select delivery location on map", Toast.LENGTH_LONG).show();
 
